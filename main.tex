@@ -15,6 +15,8 @@
 \usepackage{lipsum}  %% Package to create dummy text (comment or erase before start)
 \usepackage{media9}
 \usepackage{multimedia}
+\usepackage[ruled,vlined]{algorithm2e}
+
 
 %% ===============================================
 %% Setting the line spacing (3 options: only pick one)
@@ -117,6 +119,8 @@ In the following subsections we describe each component in the figure.
 
 \textbf{Note:} We will have to train a different agent for each target label. \\
 
+\subsection{Centers}
+In offline, the environment randomly generates 20 samples with the target label and select a pair of samples with the largest distance between them. The output of this process is 2 target samples which called centers. The agent calculates the distance to each center at each step. The closest target center called "closest cluster" and farthest one called "farthest center".
 
 
 \subsection{Action space}
@@ -146,16 +150,6 @@ Go one step in the direction of the original sample.
 
 
 
-
-
-\subsubsection{Perturbation from normal distribution}
-We adopted the iterative perturbation method describes in \cite{brendel2017decision}. This action add a perturbation from normal distribution subject to the constraints in figure \ref{fig:normal_dist_cons}
-\begin{figure}[H]
-    \centering
-        \includegraphics[scale=.8]{figures/constraints.jpg}
-    \caption{Constraints for perturbation from normal distribution}
-    \label{fig:normal_dist_cons}
-\end{figure}
 
 \subsubsection{Kmeans direction}
 In offline, we clustered the target label dataset to k clusters using kmeans algorithm.
@@ -229,14 +223,35 @@ Softmax output is quite popular for representing the policy network/function for
     # Select a policy. We use eps-greedy action selection, which means that a random action is selected with probability eps. We anneal eps from 1.0 to 0.1 over the course of 1M steps. This is done so that the agent initially explores the environment (high eps) and then gradually sticks to what it knows (low eps). We also set a dedicated eps value that is used during testing. Note that we set it to 0.05 so that the agent still performs some random actions. This ensures that the agent cannot get stuck.
 
 
-def start_policy(obs):
-    return ACTIONS.index("CLOSET_CLUSTER")
 
 Hyperparam
 Transferability 
 Many calls
 Dataset 
 Yaron
+
+\subsection{Agents}
+In this section we described the agents that I design and tested in this work. The first two agents are unique to this work, and the last one is a common reinforcement learning agent.
+
+\subsection{Simple agent}
+The simple agent used a policy as described in \ref{alg: simple}. It used one source point and two target points to explore the boundary and then to move in a triangle track from point to point in order to reduce the perturbation. In each cycle, the agent decreases the step size.
+
+\begin{algorithm}[H] \label{alg:simple}
+\SetAlgoLined
+\KwResult{Adversarial image}
+ initialization\;
+ \While{perturbation \geq PERTURBATION SIZE, steps \leq MAX STEPS }{
+ go in the direction of the closet center until labeled as target;\\
+ decrease step size;\\
+ go in the direction of the source sample until labeled as source;\\
+ (option) decrease step size;\\
+ go in the direction of the farthest center until labeled as target;\\
+ (option) decrease step size;\\
+ go in the direction of the source sample until labeled as source;\\
+ (option) decrease step size;\\
+ }
+ \caption{Simple agent}
+\end{algorithm}
 
 % --------------------
 \section{Results}
@@ -247,7 +262,7 @@ Yaron
 \label{tab:simple_result}
 \begin{tabular}{|l|l|l|l|l|l|l|l|l|l|}
 \hline
-\textbf{}       & \textbf{}     & \multicolumn{4}{c|}{\textbf{pertrubation}}                      & \multicolumn{4}{c|}{\textbf{steps}}                             \\ \hline
+\textbf{}       & \textbf{}     & \multicolumn{4}{c|}{\textbf{perturbation}}                      & \multicolumn{4}{c|}{\textbf{steps}}                             \\ \hline
 \textbf{target} & \textbf{nobs} & \textbf{min} & \textbf{max} & \textbf{mean} & \textbf{variance} & \textbf{min} & \textbf{max} & \textbf{mean} & \textbf{variance} \\ \hline
 0               & 100           & 3.95         & 7.94         & 5.49          & 0.85              & 3            & 7            & 206.62        & 83467.01          \\ \hline
 1               & 100           & 1.98         & 9.63         & 5.92          & 2.08              & 1            & 9            & 36.65         & 19376.63          \\ \hline
